@@ -93,7 +93,6 @@
 
 .lat-mode-badge {
   font-size: 11px;
-  color: #70757a;
   background: #e8f0fe;
   color: #1967d2;
   padding: 1px 7px;
@@ -133,6 +132,52 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ── Choice buttons ─────────────────────────── */
+.lat-choice-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 16px 14px 18px;
+  justify-content: center;
+}
+
+.lat-choice-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.lat-translate-btn {
+  background: #1a73e8;
+  color: #fff;
+}
+
+.lat-translate-btn:hover {
+  background: #1558b0;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
+  transform: translateY(-1px);
+}
+
+.lat-explain-btn {
+  background: #e8f0fe;
+  color: #1967d2;
+}
+
+.lat-explain-btn:hover {
+  background: #d2e3fc;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2);
+  transform: translateY(-1px);
 }
 
 /* ── Loading state ─────────────────────────── */
