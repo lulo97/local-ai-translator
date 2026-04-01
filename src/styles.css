@@ -1,0 +1,256 @@
+/* ─────────────────────────────────────────────
+   LOCAL AI TRANSLATOR — styles.css
+   Google Translate–inspired, polished UI
+   ───────────────────────────────────────────── */
+
+/* ── Floating icon ─────────────────────────── */
+#lat-float-icon {
+  position: absolute;
+  z-index: 2147483646;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.28), 0 1px 3px rgba(60, 64, 67, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a73e8;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+  user-select: none;
+  animation: lat-icon-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#lat-float-icon:hover {
+  box-shadow: 0 4px 12px rgba(60, 64, 67, 0.3), 0 2px 6px rgba(60, 64, 67, 0.2);
+  transform: scale(1.08);
+}
+
+@keyframes lat-icon-pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Bubble container ──────────────────────── */
+#lat-bubble {
+  position: absolute;
+  z-index: 2147483647;
+  width: 350px;
+  max-height: 520px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(60, 64, 67, 0.15),
+    0 10px 24px -4px rgba(60, 64, 67, 0.18);
+  font-family: 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  color: #3c4043;
+  line-height: 1.55;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: lat-bubble-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes lat-bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ────────────────────────────────── */
+.lat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid #f1f3f4;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+}
+
+.lat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lat-logo-icon {
+  display: flex;
+  align-items: center;
+  color: #1a73e8;
+}
+
+.lat-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1a73e8;
+  letter-spacing: 0.01em;
+}
+
+.lat-mode-badge {
+  font-size: 11px;
+  color: #70757a;
+  background: #e8f0fe;
+  color: #1967d2;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.lat-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #70757a;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.lat-close-btn:hover {
+  background: #e8eaed;
+  color: #3c4043;
+}
+
+/* ── Source text preview ────────────────────── */
+.lat-source-preview {
+  font-size: 12px;
+  color: #70757a;
+  padding: 8px 14px 0;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Loading state ─────────────────────────── */
+.lat-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 14px;
+  color: #70757a;
+  font-size: 13px;
+}
+
+.lat-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid #e8eaed;
+  border-top-color: #1a73e8;
+  border-radius: 50%;
+  animation: lat-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes lat-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error ─────────────────────────────────── */
+.lat-error {
+  padding: 4px 0;
+  color: #d93025;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Result body ───────────────────────────── */
+.lat-result-body {
+  padding: 10px 14px 4px;
+  overflow-y: auto;
+  max-height: 360px;
+  font-size: 14px;
+  color: #3c4043;
+  line-height: 1.6;
+  flex: 1;
+  scroll-behavior: smooth;
+}
+
+.lat-result-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.lat-result-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lat-result-body::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 4px;
+}
+
+.lat-section-header {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1a73e8;
+  margin: 10px 0 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e8f0fe;
+}
+
+.lat-section-header:first-child {
+  margin-top: 2px;
+}
+
+.lat-result-body strong {
+  color: #202124;
+  font-weight: 600;
+}
+
+/* ── Footer ────────────────────────────────── */
+.lat-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 10px;
+  border-top: 1px solid #f1f3f4;
+  background: #fafafa;
+  border-radius: 0 0 12px 12px;
+  flex-shrink: 0;
+}
+
+.lat-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid #dadce0;
+  border-radius: 16px;
+  cursor: pointer;
+  color: #1a73e8;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px 4px 9px;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.lat-copy-btn:hover {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+}
+
+.lat-copy-btn.lat-copy-success {
+  color: #137333;
+  border-color: #34a853;
+  background: #e6f4ea;
+}
+
+.lat-powered {
+  font-size: 11px;
+  color: #bdc1c6;
+  letter-spacing: 0.02em;
+}
