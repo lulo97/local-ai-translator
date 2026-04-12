@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Local AI Translator",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Translate & explain selected text using your local llama.cpp instance.",
   "permissions": [
     "contextMenus",
@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content.js"],
+      "js": ["src/marked.min.js", "src/content.js"],
       "css": ["src/styles.css"],
       "run_at": "document_idle"
     }

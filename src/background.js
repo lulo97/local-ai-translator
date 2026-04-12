@@ -1,20 +1,15 @@
 // ─────────────────────────────────────────────
 //  background.js — Service Worker
-//  Handles all llama.cpp API communication
+//  Port-based streaming to content script & popup
 // ─────────────────────────────────────────────
 
 importScripts("config.js");
 
-// ── Context menu setup ──────────────────────
+// ── Context menu — single merged item ────────
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "local-translate",
-    title: "Dịch văn bản bằng AI",
-    contexts: ["selection"],
-  });
-  chrome.contextMenus.create({
-    id: "local-explain",
-    title: "Giải thích từ bằng AI",
+    title: "Dịch / Giải thích bằng AI",
     contexts: ["selection"],
   });
 });
@@ -22,35 +17,46 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!info.selectionText) return;
   const text = info.selectionText.trim();
-
-  if (info.menuItemId === "local-translate") {
-    chrome.tabs.sendMessage(tab.id, {
-      type: "CONTEXT_MENU_TRANSLATE",
-      text,
-      mode: "translate",
-    });
-  } else if (info.menuItemId === "local-explain") {
-    chrome.tabs.sendMessage(tab.id, {
-      type: "CONTEXT_MENU_TRANSLATE",
-      text,
-      mode: "explain_word",
-    });
-  }
+  const mode = detectMode(text);
+  chrome.tabs.sendMessage(tab.id, {
+    type: "CONTEXT_MENU_TRANSLATE",
+    text,
+    mode,
+  });
 });
 
-// ── Message listener ─────────────────────────
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === "TRANSLATE_REQUEST") {
-    const mode = message.mode || "translate";
-    handleTranslation(message.text, mode)
-      .then((result) => sendResponse({ success: true, data: result }))
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; // keep channel open for async response
-  }
+// ── Port-based streaming ─────────────────────
+// Both content.js and popup.js connect a port named "stream".
+// Background streams SSE chunks back through the port.
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "stream") return;
+
+  port.onMessage.addListener(async (message) => {
+    if (message.type !== "TRANSLATE_REQUEST") return;
+    const { text, mode } = message;
+    await handleStreamingTranslation(text, mode, port);
+  });
 });
 
-// ── Core translation logic ───────────────────
-async function handleTranslation(text, mode) {
+// ── Mode detection ───────────────────────────
+function detectMode(text) {
+  return text.split(/\s+/).filter(Boolean).length <= 2
+    ? "explain_word"
+    : "translate";
+}
+
+// ── Safe port send (port may disconnect mid-stream) ──
+function safeSend(port, message) {
+  try {
+    port.postMessage(message);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Core streaming logic ─────────────────────
+async function handleStreamingTranslation(text, mode, port) {
   const { systemPrompt, userPrompt, maxTokens } = buildPrompt(text, mode);
 
   const payload = {
@@ -58,7 +64,7 @@ async function handleTranslation(text, mode) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    stream: false,
+    stream: true,
     temperature: 0.8,
     max_tokens: maxTokens,
     top_k: 40,
@@ -67,57 +73,80 @@ async function handleTranslation(text, mode) {
     repeat_last_n: 64,
     repeat_penalty: 1,
     samplers: [
-      "penalties",
-      "dry",
-      "top_n_sigma",
-      "top_k",
-      "typ_p",
-      "top_p",
-      "min_p",
-      "xtc",
-      "temperature",
+      "penalties", "dry", "top_n_sigma",
+      "top_k", "typ_p", "top_p", "min_p", "xtc", "temperature",
     ],
   };
 
+  if (CONFIG.MODEL && CONFIG.MODEL !== "auto") {
+    payload.model = CONFIG.MODEL;
+  }
+
+  let response;
   try {
-    const response = await fetch(CONFIG.ENDPOINT, {
+    response = await fetch(CONFIG.ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
+        "Accept": "text/event-stream",
       },
       body: JSON.stringify(payload),
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Server Error ${response.status}: ${errorBody}`);
-    }
-
-    const result = await response.json();
-
-    const choice = result.choices[0];
-    let rawContent = choice.message.content || "";
-
-    if (choice.message.reasoning_content) {
-      console.log("Detected reasoning, skipping...");
-    }
-
-    const cleanContent = rawContent
-      .replace(/<think>[\s\S]*?<\/think>/gi, "")
-      .replace(
-        /^(?:\s*\d+\.\s+\*\*[\s\S]*?\*\*:?[\s\S]*?)+(?=\n\n|\d\.|$)/i,
-        "",
-      )
-      .trim();
-
-    return {
-      text: cleanContent || rawContent,
-      mode,
-    };
   } catch (e) {
-    console.error("Translation Error:", e);
-    throw new Error(`Lỗi kết nối: ${e.message}`);
+    safeSend(port, { type: "ERROR", error: `Không kết nối được server: ${e.message}` });
+    return;
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    safeSend(port, { type: "ERROR", error: `Server lỗi ${response.status}: ${body}` });
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let lineBuffer = "";
+
+  // Track whether port is still alive
+  let portAlive = true;
+  port.onDisconnect.addListener(() => { portAlive = false; });
+
+  try {
+    while (portAlive) {
+      const { done, value } = await reader.read();
+      if (done) {
+        safeSend(port, { type: "DONE" });
+        break;
+      }
+
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split("\n");
+      lineBuffer = lines.pop(); // keep the incomplete trailing line
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+
+        const data = trimmed.slice(5).trim();
+        if (data === "[DONE]") {
+          safeSend(port, { type: "DONE" });
+          return;
+        }
+
+        let json;
+        try { json = JSON.parse(data); } catch { continue; }
+
+        // Skip reasoning_content (think tokens from reasoning models)
+        const delta = json.choices?.[0]?.delta?.content ?? "";
+        if (delta) {
+          if (!safeSend(port, { type: "CHUNK", delta })) return;
+        }
+      }
+    }
+  } catch (e) {
+    safeSend(port, { type: "ERROR", error: `Lỗi đọc stream: ${e.message}` });
+  } finally {
+    reader.cancel().catch(() => {});
   }
 }
 
@@ -128,16 +157,13 @@ function buildPrompt(text, mode) {
   if (mode === "explain_word") {
     return {
       systemPrompt: `You are a professional English to ${lang} translator and lexicographer.`,
-      userPrompt: `Task: Provide a concise English definition, an example sentence, and the ${lang} translation for the word or phrase below.
-
-Input: "${text}"
-
-Output:`,
+      userPrompt:
+        `Provide: (1) a concise English definition, (2) an example sentence, ` +
+        `and (3) the ${lang} translation for the word or phrase: "${text}"`,
       maxTokens: CONFIG.MAX_TOKENS_TRANSLATE || 300,
     };
   }
 
-  // Default: translate mode
   return {
     systemPrompt: `You are a professional English to ${lang} translator.`,
     userPrompt: `Translate the following text to ${lang}:\n"${text}"`,

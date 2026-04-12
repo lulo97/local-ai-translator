@@ -12,20 +12,16 @@ const CONFIG = {
     return `http://localhost:${this.PORT}/v1/chat/completions`;
   },
 
-  // Model name sent to llama.cpp (any string is fine for local)
-  MODEL: "auto",  // "auto" = omit field (recommended for local llama.cpp)
+  // Model name sent to llama.cpp — "auto" omits the field (recommended for local)
+  MODEL: "auto",
 
   // Target language for all translations
   TARGET_LANGUAGE: "Vietnamese",
 
-  // Words threshold: selections BELOW this go to "translate" mode,
-  // selections AT or ABOVE go to "summarize + vocab" mode
-  DUAL_MODE_THRESHOLD: 30,
-
   // Debounce delay (ms) before the floating icon appears
   DEBOUNCE_MS: 300,
 
-  // Max tokens for short translate vs long summarize
+  // Max tokens for word explain vs paragraph translate
   MAX_TOKENS_TRANSLATE: 300,
   MAX_TOKENS_SUMMARIZE: 600,
 };
