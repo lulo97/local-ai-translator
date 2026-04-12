@@ -65,17 +65,38 @@ async function handleStreamingTranslation(text, mode, port) {
       { role: "user", content: userPrompt },
     ],
     stream: true,
+    return_progress: true, // ← required for streaming with some builds
+    reasoning_format: "auto",
     temperature: 0.8,
-    max_tokens: maxTokens,
+    max_tokens: -1, // ← use -1 instead of a fixed limit
+    dynatemp_range: 0,
+    dynatemp_exponent: 1,
     top_k: 40,
     top_p: 0.95,
     min_p: 0.05,
+    xtc_probability: 0,
+    xtc_threshold: 0.1,
+    typ_p: 1,
     repeat_last_n: 64,
     repeat_penalty: 1,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+    dry_multiplier: 0,
+    dry_base: 1.75,
+    dry_allowed_length: 2,
+    dry_penalty_last_n: -1,
     samplers: [
-      "penalties", "dry", "top_n_sigma",
-      "top_k", "typ_p", "top_p", "min_p", "xtc", "temperature",
+      "penalties",
+      "dry",
+      "top_n_sigma",
+      "top_k",
+      "typ_p",
+      "top_p",
+      "min_p",
+      "xtc",
+      "temperature",
     ],
+    timings_per_token: true,
   };
 
   if (CONFIG.MODEL && CONFIG.MODEL !== "auto") {
@@ -88,18 +109,24 @@ async function handleStreamingTranslation(text, mode, port) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "text/event-stream",
+        "Accept": "*/*",               // ← same as curl
       },
       body: JSON.stringify(payload),
     });
   } catch (e) {
-    safeSend(port, { type: "ERROR", error: `Không kết nối được server: ${e.message}` });
+    safeSend(port, {
+      type: "ERROR",
+      error: `Không kết nối được server: ${e.message}`,
+    });
     return;
   }
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    safeSend(port, { type: "ERROR", error: `Server lỗi ${response.status}: ${body}` });
+    safeSend(port, {
+      type: "ERROR",
+      error: `Server lỗi ${response.status}: ${body}`,
+    });
     return;
   }
 
@@ -109,7 +136,9 @@ async function handleStreamingTranslation(text, mode, port) {
 
   // Track whether port is still alive
   let portAlive = true;
-  port.onDisconnect.addListener(() => { portAlive = false; });
+  port.onDisconnect.addListener(() => {
+    portAlive = false;
+  });
 
   try {
     while (portAlive) {
@@ -134,7 +163,11 @@ async function handleStreamingTranslation(text, mode, port) {
         }
 
         let json;
-        try { json = JSON.parse(data); } catch { continue; }
+        try {
+          json = JSON.parse(data);
+        } catch {
+          continue;
+        }
 
         // Skip reasoning_content (think tokens from reasoning models)
         const delta = json.choices?.[0]?.delta?.content ?? "";
