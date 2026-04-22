@@ -187,9 +187,11 @@ async function handleStreamingTranslation(text, mode, port) {
 function buildPrompt(text, mode) {
   const lang = CONFIG.TARGET_LANGUAGE;
 
+  const systemPrompt = `You are a professional English to ${lang} translator and lexicographer. Just answer in compact format, no extra text.`
+
   if (mode === "explain_word") {
     return {
-      systemPrompt: `You are a professional English to ${lang} translator and lexicographer.`,
+      systemPrompt: systemPrompt,
       userPrompt:
         `Provide: (1) a concise English definition, (2) an example sentence, ` +
         `and (3) the ${lang} translation for the word or phrase: "${text}"`,
@@ -198,7 +200,7 @@ function buildPrompt(text, mode) {
   }
 
   return {
-    systemPrompt: `You are a professional English to ${lang} translator.`,
+    systemPrompt: systemPrompt,
     userPrompt: `Translate the following text to ${lang}:\n"${text}"`,
     maxTokens: CONFIG.MAX_TOKENS_SUMMARIZE || 600,
   };
